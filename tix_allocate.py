@@ -87,9 +87,6 @@ def streamCalc(CSR_metric, NCSR_metric, FT_metric):
     if CSR_metric + NCSR_metric + FT_metric = 1.0:
         return stream_valid = True
 
-def regionCalc(arg):
-    pass
-
 def swap():
     delegateList.append(randomer from applicantList)
     delegateList.delete(randomer from delegateList)
@@ -127,13 +124,33 @@ while not stream_valid:
     #code goes in here
     pass
 """
+
+def regionCalc(regionDict):
+    if regionDict.get('OOL') > .24 and regionDict.get('OOL') < .26:
+        oolMetric = True
+    else:
+        oolMetric = False
+    if regionDict.get('London') > .74 and regionDict.get('London') < .76:
+        londonMetric = True
+    else:
+        londonMetric = False
+    if londonMetric + oolMetric == True:
+        regionMetric = True
+    else:
+        regionMetric = False
+
+    return regionMetric
+
+
+    pass
+
 regionList = ['OOL', 'London']
 
 applicants = pd.read_csv('test.csv')
-print(applicants)
+#print(applicants)
 
 delegates = applicants.sample(frac = 0.8)
-print (delegates)
+#print (delegates)
 
 regionDict = dict(Counter(" ".join(delegates['Reg'].values.tolist()).split(" ")).items())
 print (regionDict)
@@ -144,4 +161,7 @@ print (streamDict)
 numberDelegates = len(delegates.index)
 
 for region in regionList:
-    print(float(regionDict.get(region))/800*100)
+    regionDict[region] = float(regionDict.get(region))/800
+print(regionDict)
+a = regionCalc(regionDict)
+print(a)
