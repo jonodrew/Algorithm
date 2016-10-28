@@ -1,5 +1,7 @@
 import pandas as pd
+import numpy as np
 from collections import Counter
+import random
 
 """
 read csv
@@ -87,9 +89,6 @@ def streamCalc(CSR_metric, NCSR_metric, FT_metric):
     if CSR_metric + NCSR_metric + FT_metric = 1.0:
         return stream_valid = True
 
-def swap():
-    delegateList.append(randomer from applicantList)
-    delegateList.delete(randomer from delegateList)
 
 delegates = file.open(heresmyfile.csv)
 
@@ -141,22 +140,30 @@ def regionCalc(regionDict):
 
     return regionMetric
 
-
-    pass
+def reindex(df):
+    newIndex = range(0,len(df))
+    df['Index'] = newIndex
+    df = df.set_index('Index')
+    return df
 
 regionList = ['OOL', 'London']
 
 applicants = pd.read_csv('test.csv')
-#print(applicants)
+print(applicants)
 
-delegates = applicants.sample(frac = 0.8)
-#print (delegates)
+rows = random.sample(applicants.index, 800)
 
-regionDict = dict(Counter(" ".join(delegates['Reg'].values.tolist()).split(" ")).items())
-print (regionDict)
+delegates = applicants.ix[rows]
+print (delegates)
+
+
+applicants = applicants.drop(rows)
+
+regionDict = dict(Counter(" ".join(delegates['Region'].values.tolist()).split(" ")).items())
+#print (regionDict)
 
 streamDict = dict(Counter(" ".join(delegates['CSR'].values.tolist()).split(" ")).items())
-print (streamDict)
+#print (streamDict)
 
 numberDelegates = len(delegates.index)
 
@@ -165,3 +172,15 @@ for region in regionList:
 print(regionDict)
 a = regionCalc(regionDict)
 print(a)
+#delegates.index = delegates[u'ID']
+#applicants.index = applicants[u'ID']
+#print (delegates.columns)
+
+
+    for i in range(1000):
+        delegates = reindex(delegates)
+        applicants = reindex(applicants)
+        rand1 = random.randrange(0,len(delegates))
+        rand2 = random.randrange(0,len(applicants))
+        delegates = delegates.drop(rand1)
+        delegates = delegates.append(applicants.ix[rand2])
