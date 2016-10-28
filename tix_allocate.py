@@ -18,7 +18,7 @@ risks small number in one and unsuitable ratios
 hence: ratio global or daily?
 Global ratio allows for all OOL on one day
 
-x total applicants
+x total df2
 y OOL, z London
 a CSR, b non-CSR
     a   b
@@ -57,7 +57,7 @@ if stream_valid = True:
             if region_valid
             calculate day metrics
             if day metrics better:
-                keep delegates
+                keep df1
             if day metrics the same:
                 flip a coin
             else:
@@ -90,11 +90,11 @@ def streamCalc(CSR_metric, NCSR_metric, FT_metric):
         return stream_valid = True
 
 
-delegates = file.open(heresmyfile.csv)
+df1 = file.open(heresmyfile.csv)
 
 def __main__(arg):
     generate empty dataframe: index applicant number, columns: stream, region, day
-    randomly assign 800 delegates to it
+    randomly assign 800 df1 to it
     streamLoop = 0
     regionLoop = 0
     dayLoop = 0
@@ -111,11 +111,11 @@ def __main__(arg):
                         if score = len(list)*2:
                             break and go to the pub
                         else:
-                            swap delegate in list with list of applicants
+                            swap delegate in list with list of df2
                 else:
-                    swap delegate in list with list of applicants
+                    swap delegate in list with list of df2
         else:
-            swap delegate in list with list of applicants
+            swap delegate in list with list of df2
 
 
 
@@ -123,21 +123,43 @@ while not stream_valid:
     #code goes in here
     pass
 """
+def swapFunc(df1, df2):
+    df1 = reindex(df1) #to make sure the random number is in the index
+    df2 = reindex(df2) #ditto
+    rand1 = random.randrange(0,len(df1)) #generates random number for df1 list
+    rand2 = random.randrange(0,len(df2)) #ditto for leftover df2
+    df2 = df2.append(df1.ix[rand1]) #adds random row from df1 to df2
+    df1 = df1.drop(rand1) #deletes that  row from df1 table
+    df1 = df1.append(df2.ix[rand2]) #appends random row from df2 table
+    df2 = df2.drop(rand2) #deletes that row from df2
+    return df1,df2
 
-def regionCalc(regionDict):
-    if regionDict.get('OOL') > .24 and regionDict.get('OOL') < .26:
+def dayCalc(df1):
+    day1 = df1['Day 1'].value_counts()
+    day2 = df1['Day 2'].value_counts()
+    if day1.ix[1] > 250 and day2.ix[1] > 250:
+        dayMetric = True
+    else:
+        dayMetric = False
+    return dayMetric
+
+def regionCalc(df):
+    regionDict = dict(Counter(" ".join(df['Region'].values.tolist()).split(" ")).items())
+    for region in regionList:
+        regionDict[region] = float(regionDict.get(region))/len(df1)
+    if regionDict.get('OOL') >= .24 and regionDict.get('OOL') <= .26:
         oolMetric = True
     else:
         oolMetric = False
-    if regionDict.get('London') > .74 and regionDict.get('London') < .76:
+    if regionDict.get('London') >= .74 and regionDict.get('London') <= .76:
         londonMetric = True
     else:
         londonMetric = False
-    if londonMetric + oolMetric == True:
+    if londonMetric == True and oolMetric == True and (
+    regionDict.get('London')+regionDict.get('OOL') == 1.0):
         regionMetric = True
     else:
         regionMetric = False
-
     return regionMetric
 
 def reindex(df):
@@ -149,38 +171,47 @@ def reindex(df):
 regionList = ['OOL', 'London']
 
 applicants = pd.read_csv('test.csv')
-print(applicants)
 
 rows = random.sample(applicants.index, 800)
 
 delegates = applicants.ix[rows]
-print (delegates)
 
 
 applicants = applicants.drop(rows)
 
-regionDict = dict(Counter(" ".join(delegates['Region'].values.tolist()).split(" ")).items())
+
 #print (regionDict)
 
 streamDict = dict(Counter(" ".join(delegates['CSR'].values.tolist()).split(" ")).items())
+
 #print (streamDict)
 
-numberDelegates = len(delegates.index)
-
-for region in regionList:
-    regionDict[region] = float(regionDict.get(region))/800
-print(regionDict)
-a = regionCalc(regionDict)
-print(a)
-#delegates.index = delegates[u'ID']
-#applicants.index = applicants[u'ID']
-#print (delegates.columns)
+def metricCalc(metricDict):
+    for x in metricDict:
+        metricDict[x] = float(metricDict.get(x))
+    return metricDict
 
 
-    for i in range(1000):
-        delegates = reindex(delegates)
-        applicants = reindex(applicants)
-        rand1 = random.randrange(0,len(delegates))
-        rand2 = random.randrange(0,len(applicants))
-        delegates = delegates.drop(rand1)
-        delegates = delegates.append(applicants.ix[rand2])
+
+loop = 0
+dayMetric = False
+for i in range(100):
+    while dayMetric == False:
+        swapFunc(delegates,applicants)
+        dayMetric = dayCalc(delegates)
+        if dayMetric == True:
+            print("Correct number of delegates per day")
+            regionMetric = regionCalc(delegates)
+            if regionMetric == False:
+                while regionMetric == False:
+                    if loop > 1000:
+                        break
+                    dataframes = swapFunc(delegates,applicants)
+                    delegates = dataframes[0]
+                    applicants = dataframes[1]
+                    print('Swapping candidate')
+                    regionMetric = regionCalc(delegates)
+                    loop +=1
+                    print('This is loop %d' % loop)
+            else:
+                print ("Correct regional ratio overall")
