@@ -71,49 +71,83 @@ def reindex(df):
     df = df.set_index('Index')
     return df
 
-applicants = pd.read_csv('test.csv')
-
-rows = random.sample(applicants.index, 800)
-
-delegates = applicants.ix[rows]
-
-applicants = applicants.drop(rows)
-
-loop = 0
-dayMetric = False
-CSR_metric = False
-streamMetric = False
-while dayMetric == False:
-    dataframes = swapFunc(delegates,applicants)
-    delegates = dataframes[0]
-    applicants = dataframes[1]
-    print('This is a day loop')
-    loop +=1
-    print('This is iteration %d' % loop)
-    dayMetric = dayCalc(delegates)
-    if dayMetric == True:
-        print("Correct number of delegates per day")
-        regionMetric = regionCalc(delegates)
-        if regionMetric == False:
-            dataframes = swapFunc(delegates,applicants)
-            delegates = dataframes[0]
-            applicants = dataframes[1]
-            print('Swapping regional candidate')
-            regionMetric = regionCalc(delegates)
-            loop +=1
-            print('This is loop %d' % loop)
-        else:
-            print('Correct number of delegates per region')
-            streamMetric = streamCalc(delegates)
-            while streamMetric == False:
+max_iterations = 10000
+metrics = {}
+for i in range(100):
+    print("This is round %d" % i)
+    success = False
+    iteration = 0
+    while success == False:
+        if iteration > 1000:
+            break
+        applicants = pd.read_csv('test.csv')
+        rows = random.sample(applicants.index, 800)
+        delegates = applicants.ix[rows]
+        applicants = applicants.drop(rows)
+        day_loop = 1
+        region_loop = 1
+        stream_loop = 1
+        dayMetric = False
+        regionMetric = False
+        streamMetric = False
+        while streamMetric == False:
+            while regionMetric == False:
+                while dayMetric == False:
+                    print('Started day loop')
+                    dataframes = swapFunc(delegates,applicants)
+                    delegates = dataframes[0]
+                    applicants = dataframes[1]
+                    #print('This is the end of day loop %d' % day_loop)
+                    day_loop +=1
+                    dayMetric = dayCalc(delegates)
+                print('Started region loop')
                 dataframes = swapFunc(delegates,applicants)
                 delegates = dataframes[0]
                 applicants = dataframes[1]
-                print('Swapping stream candidate')
-                streamMetric = streamCalc(delegates)
-                loop +=1
-                print('This is loop %d' % loop)
-                if streamMetric == True:
-                    print("Correct number of delegates per stream")
-                    print("Delegate list compiled")
-                    delegates.to_csv("delegate_test.csv")
+                #print('Swapping regional candidate')
+                regionMetric = regionCalc(delegates)
+                dayMetric = dayCalc(delegates)
+                region_loop +=1
+                if region_loop > 100:
+                    break
+                break
+                #print('This is the end of region loop %d' % region_loop)
+            print('Started stream loop')
+            dataframes = swapFunc(delegates,applicants)
+            delegates = dataframes[0]
+            applicants = dataframes[1]
+            #print('Swapping stream candidate')
+            streamMetric = streamCalc(delegates)
+            stream_loop +=1
+            #print('This is the end of stream loop %d' % stream_loop)
+            if stream_loop > 100:
+                break
+            if streamMetric == True and regionMetric == True and dayMetric == True:
+                print("Delegate list compiled")
+                success = True
+                a = regionCalc(delegates)
+                b = streamCalc(delegates)
+                c = dayCalc(delegates)
+                result = [a,b,c]
+                metrics[i] = a,b,c
+                day_1 = pd.DataFrame(columns = delegates.columns)
+                day_2 = pd.DataFrame(columns = delegates.columns)
+                reserves_df = pd.DataFrame(columns = delegates.columns)
+                for index, row in delegates.iterrows():
+                    if row['Day 1'] == 1 and len(day_1.index) < 250:
+                        day_1.loc[index] = row
+                    elif row['Day 2'] == 1 and len(day_2.index) < 250:
+                        day_2.loc[index] = row
+                    else:
+                        reserves_df.loc[index] = row
+                day_1.to_csv('results/day_1_%d.csv' % i)
+                day_2.to_csv('results/day_2_%d.csv' % i)
+                reserves_df.to_csv('results/reserves_%d.csv' % i)
+            else:
+                iteration += 1
+                print("This is the end of iteration %d" % iteration)
+                break
+
+
+
+print(metrics)
