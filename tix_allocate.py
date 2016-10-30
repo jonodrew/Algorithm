@@ -18,7 +18,6 @@ streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
 stream_target = {'CSR':350,'non-CSR':100,'FT':50}
 metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
-
 def createData():
     """this function creates 2000 rows of random data according to the constraints
     set out below. They can be editted for harder testing"""
@@ -121,7 +120,6 @@ def successCalc(df):
     c = streamCalc(df,stream_target,region_target)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return a,b,c
-
 for j in range(100):
     start_time = time.time()
     success = False
