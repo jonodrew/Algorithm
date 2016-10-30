@@ -8,9 +8,12 @@ import sys
 times = {}
 metrics = {}
 success = False
-max_iterations = 2500
+max_iterations = 1500
 tickets_available = 500
-regions = ['OOL','London']
+regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
+region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
+'Anglia':0.004,'Midlands':0.005,'Yorkshire':0.048,'NW':0.023,'NE':0.017,
+'Scotland':0.041}
 streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
 stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
@@ -26,9 +29,9 @@ def createData():
         rand2 = random.random()
         rand3 = random.randrange(1,3)
         if rand1 > 0.75:
-            r.append(regions[0])
+            r.append('London')
         else:
-            r.append(regions[1])
+            r.append(random.choice(regions))
         if rand2 < 0.70:
             r.append(streams[0])
         elif rand2 < 0.90:
@@ -75,28 +78,22 @@ def dayCalc(df):
     else:
         dayMetric = False
     return dayMetric
-
-def regionCalc(df):
+def regionCalc(df, dict1):
     """Calculates whether the regions are in the ratios below AND if the day metric
     is still correct"""
     regionDict = dict(Counter(" ".join(df['Region'].values.tolist()).split(" ")).items())
+    #print(regionDict)
+    validity = 0
+    #print(regionDict)
     for region in regionDict:
         regionDict[region] = float(regionDict.get(region))/len(df)
-    if regionDict.get('OOL') >= .24 and regionDict.get('OOL') <= .26:
-        oolMetric = True
-    else:
-        oolMetric = False
-    if regionDict.get('London') >= .74 and regionDict.get('London') <= .76:
-        londonMetric = True
-    else:
-        londonMetric = False
-    if bool(londonMetric * oolMetric) == True and (
-    regionDict.get('London')+regionDict.get('OOL') == 1.0):
+    for key in dict1:
+      if regionDict[key] > dict1[key]-1 or regionDict[key] < dict1[key] + 1:
+        validity += 1
+    if validity == len(dict1):
         regionMetric = True
-    else:
-        regionMetric = False
+    regionMetric = bool(dayCalc(df)*regionMetric)
     return regionMetric
-
 def streamCalc(df):
     streamDict = dict(Counter(" ".join(delegates['Stream'].values.tolist()).split(" ")).items())
     CSR_metric = False
@@ -105,7 +102,7 @@ def streamCalc(df):
     for stream in streamDict:
         streamDict[stream] = float(streamDict.get(stream))/len(df)
     #print(streamDict)
-    if streamDict.get('CSR') >= 340 and streamDict.get('CSR') <= 360:
+    if streamDict.get('CSR') >= 340 and streamDict.get('CSR') <= 460:
         CSR_metric = True
     if streamDict.get('non-CSR') >= 90 and streamDict.get('non-CSR') <= 110:
         non_CSR_metric = True
@@ -116,30 +113,30 @@ def streamCalc(df):
     else:
         streamMetric = False
     return streamMetric
-
 def reindex(df):
     newIndex = range(0,len(df))
     df['Index'] = newIndex
     df = df.set_index('Index')
     return df
 def successCalc(df):
-    a = regionCalc(df)
+    a = regionCalc(df,region_target)
     b = streamCalc(df)
     c = dayCalc(df)
     a = bool(a * c)
     b = bool(a * b * c)
-    successMetric = bool(a * b * c)
+    successMetric = b
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return successMetric,a,b,c
 
-for j in range(1000):
+for j in range(100):
     start_time = time.time()
     success = False
     iteration = 0
     test1 = createData()
     while success == False:
         attempt = "%d.%d" % (j,iteration)
-        if iteration > 99:
+        #print(iteration)
+        if iteration > 9:
             break
         start_iteration_time = time.time()
         print("Attempt: %d.%d" % (j,iteration))
@@ -154,10 +151,17 @@ for j in range(1000):
         streamMetric = False
         stream_loop = 0
         while streamMetric == False:
+            #print("Starting stream loop %d" % stream_loop)
             region_loop = 0
             while regionMetric == False:
+                if region_loop > max_iterations:
+                    break
+                #print("Starting region loop %d" % region_loop)
                 day_loop = 0
                 while dayMetric == False:
+                    if day_loop > max_iterations:
+                        break
+                    #print("Starting day loop %d" % day_loop)
                     success_outputs = successCalc(delegates)
                     success = success_outputs[0]
                     regionMetric = success_outputs[1]
@@ -175,9 +179,7 @@ for j in range(1000):
                         delegates = dataframes[0]
                         applicants = dataframes[1]
                     day_loop += 1
-                    dayMetric = dayCalc(delegates)
-                    if day_loop > max_iterations:
-                        break
+                regionMetric = regionCalc(delegates,region_target)
                 if regionMetric == True:
                     break
                 dataframes = swapFunc(delegates,applicants)
@@ -185,12 +187,14 @@ for j in range(1000):
                 applicants = dataframes[1]
                 success_outputs = successCalc(delegates)
                 region_loop += 1
-                if region_loop > max_iterations:
-                    break
-                dayMetric = success_outputs[3]
+                success_outputs = successCalc(delegates)
+                success = success_outputs[0]
                 regionMetric = success_outputs[1]
+            streamMetric = success_outputs[3]
+            #print(streamMetric)
             if streamMetric == True:
                 break
+            #print(streamMetric)
             dataframes = swapFunc(delegates,applicants)
             delegates = dataframes[0]
             applicants = dataframes[1]
@@ -203,40 +207,36 @@ for j in range(1000):
                 break
             success_outputs = successCalc(delegates)
             success = success_outputs[0]
-            regionMetric = success_outputs[1]
-            dayMetric = success_outputs[3]
             streamMetric = success_outputs[2]
             stream_loop +=1
             if stream_loop > max_iterations:
-                metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-                iteration += 1
-                print("Fail")
-                success = False
                 break
-    if success == True:
-        metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-        print("Success! Delegate list compiled")
-        day_1 = pd.DataFrame(columns = delegates.columns)
-        day_2 = day_1
-        reserves_df = day_1
-        for index,row in delegates.iterrows():
-            if row['Day 1'] == 1 and len(day_1.index) < 250:
-                day_1 = day_1.append(delegates.ix[index])
-            elif row['Day 2'] == 1 and len(day_2.index) < 250:
-                day_2.append(delegates.ix[row])
-            else:
-                reserves_df.append(delegates.ix[row])
-        day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
-        day_2.to_csv('results/day2_iteration%d.%d.csv' % (j,iteration))
-        reserves_df.to_csv('results/reserves_iteration%d.%d.csv' % (j,iteration))
-    else:
-        metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-        iteration += 1
-        print("No solutions found. Trying next dataset")
-    end_time = (time.time()-start_time)/60
-    times[j] = end_time
-    test1 = createData()
-    print("New data")
+        success = streamMetric
+        if success == True:
+            metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
+            print("Success! Delegate list compiled")
+            day_1 = pd.DataFrame(columns = delegates.columns)
+            day_2 = day_1
+            reserves_df = day_1
+            for index,row in delegates.iterrows():
+                if row['Day 1'] == 1 and len(day_1.index) < 250:
+                    day_1 = day_1.append(delegates.ix[index])
+                elif row['Day 2'] == 1 and len(day_2.index) < 250:
+                    day_2.append(delegates.ix[index])
+                else:
+                    reserves_df.append(delegates.ix[index])
+            #print(day_1)
+            day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
+            day_2.to_csv('results/day2_iteration%d.%d.csv' % (j,iteration))
+            reserves_df.to_csv('results/reserves_iteration%d.%d.csv' % (j,iteration))
+        else:
+            metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
+            iteration += 1
+            print("No solutions found. Trying next dataset")
+        end_time = (time.time()-start_time)/60
+        times[j] = end_time
+        test1 = createData()
+        print("New data")
 print("Test complete")
 times = pd.DataFrame(times.items(),columns = ['Attempt','Time (m)'])
 times.to_csv('results/times.csv')
