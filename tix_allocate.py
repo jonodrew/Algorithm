@@ -16,7 +16,7 @@ region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
 'Scotland':0.041}
 streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
-stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
+stream_target = {'CSR':350,'non-CSR':100,'FT':50}
 metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
 
 def createData():
@@ -88,13 +88,13 @@ def regionCalc(df, dict1):
     for region in regionDict:
         regionDict[region] = float(regionDict.get(region))/len(df)
     for key in dict1:
-      if regionDict[key] > dict1[key]-1 or regionDict[key] < dict1[key] + 1:
+      if (regionDict[key] > dict1[key]-1 or regionDict[key] < dict1[key] + 1):
         validity += 1
     if validity == len(dict1):
         regionMetric = True
     regionMetric = bool(dayCalc(df)*regionMetric)
     return regionMetric
-def streamCalc(df):
+def streamCalc(df,dict1,dict2):
     streamDict = dict(Counter(" ".join(delegates['Stream'].values.tolist()).split(" ")).items())
     CSR_metric = False
     non_CSR_metric = False
@@ -102,16 +102,13 @@ def streamCalc(df):
     for stream in streamDict:
         streamDict[stream] = float(streamDict.get(stream))/len(df)
     #print(streamDict)
-    if streamDict.get('CSR') >= 340 and streamDict.get('CSR') <= 460:
-        CSR_metric = True
-    if streamDict.get('non-CSR') >= 90 and streamDict.get('non-CSR') <= 110:
-        non_CSR_metric = True
-    if streamDict.get('FT') >= 40 and streamDict.get('FT') <= 60:
-        FT_metric = True
-    if bool(CSR_metric * non_CSR_metric * FT_metric) == True:
+    validity = 0
+    for key in dict1:
+        if (streamDict[key] > dict1[key] - 5 or streamDict[key] < dict1[key] + 5):
+            validity +=1
+    if validity == len(dict1):
         streamMetric = True
-    else:
-        streamMetric = False
+    streamMetric = bool(regionCalc(df,dict2)*streamMetric)
     return streamMetric
 def reindex(df):
     newIndex = range(0,len(df))
@@ -119,14 +116,11 @@ def reindex(df):
     df = df.set_index('Index')
     return df
 def successCalc(df):
-    a = regionCalc(df,region_target)
-    b = streamCalc(df)
-    c = dayCalc(df)
-    a = bool(a * c)
-    b = bool(a * b * c)
-    successMetric = b
+    a = dayCalc(df)
+    b = regionCalc(df,region_target)
+    c = streamCalc(df,stream_target,region_target)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
-    return successMetric,a,b,c
+    return a,b,c
 
 for j in range(100):
     start_time = time.time()
@@ -145,7 +139,7 @@ for j in range(100):
         delegates = applicants.ix[rows]
         applicants = applicants.drop(rows)
         success_outputs = successCalc(delegates)
-        success = success_outputs[0]
+        success = success_outputs[2]
         regionMetric = False
         dayMetric = False
         streamMetric = False
@@ -163,10 +157,10 @@ for j in range(100):
                         break
                     #print("Starting day loop %d" % day_loop)
                     success_outputs = successCalc(delegates)
-                    success = success_outputs[0]
+                    dayMetric = success_outputs[0]
                     regionMetric = success_outputs[1]
                     streamMetric = success_outputs[2]
-                    dayMetric = success_outputs[3]
+                    success = streamMetric
                     if dayMetric == True:
                         break
                     pre_day1 = delegates['Day 1'].value_counts().ix[1]
@@ -188,9 +182,9 @@ for j in range(100):
                 success_outputs = successCalc(delegates)
                 region_loop += 1
                 success_outputs = successCalc(delegates)
-                success = success_outputs[0]
+                success = success_outputs[2]
                 regionMetric = success_outputs[1]
-            streamMetric = success_outputs[3]
+            streamMetric = success_outputs[2]
             #print(streamMetric)
             if streamMetric == True:
                 break
@@ -206,8 +200,8 @@ for j in range(100):
                     break
                 break
             success_outputs = successCalc(delegates)
-            success = success_outputs[0]
-            streamMetric = success_outputs[2]
+            success = success_outputs[2]
+            streamMetric = success
             stream_loop +=1
             if stream_loop > max_iterations:
                 break
