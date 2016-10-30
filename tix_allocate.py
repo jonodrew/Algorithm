@@ -5,18 +5,6 @@ import random
 import time
 import sys
 
-times = {}
-metrics = {}
-success = False
-test1 = createData()
-max_iterations = 2500
-tickets_available = 500
-regions = ['OOL','London']
-streams = ['CSR','non-CSR','FT']
-cols = ['ID','Region','Stream','Day 1','Day 2']
-stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
-metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
-
 def createData():
     """this function creates 2000 rows of random data according to the constraints
     set out below. They can be editted for harder testing"""
@@ -132,21 +120,34 @@ def successCalc(df):
     successMetric = bool(a * b * c)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return successMetric,a,b,c
+
+times = {}
+metrics = {}
+success = False
+max_iterations = 1500
+tickets_available = 500
+regions = ['OOL','London'] #need to add new regions
+streams = ['CSR','non-CSR','FT']
+cols = ['ID','Region','Stream','Day 1','Day 2']
+test1 = createData()
+stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
+metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
+
 for j in range(100):
-    start_time = time.time()
-    success = False
-    iteration = 0
+    start_time = time.time() #for measuring how long it takes
+    success = False #to ensure we keep going until successful
+    iteration = 0 #to measure loops, making sure we stop
     while success == False:
         attempt = "%d.%d" % (j,iteration)
-        if iteration > 99:
+        if iteration > 9: #prevents infinite loop
             break
-        start_iteration_time = time.time()
-        print("Attempt: %d.%d" % (j,iteration))
-        applicants = test1
-        rows = random.sample(applicants.index, tickets_available)
-        delegates = applicants.ix[rows]
-        applicants = applicants.drop(rows)
-        success_outputs = successCalc(delegates)
+        start_iteration_time = time.time() #for measuring loops
+        print("Attempt: %d.%d" % (j,iteration)) #outputs useful message
+        applicants = test1 #bucket of applicants
+        rows = random.sample(applicants.index, tickets_available) #randomly select as many applicants as there are tickets
+        delegates = applicants.ix[rows] #transfer them into the delegates bucket
+        applicants = applicants.drop(rows) #drop these rows. Prevents duplicates
+        success_outputs = successCalc(delegates) #calculate if already correct
         success = success_outputs[0]
         regionMetric = False
         dayMetric = False
