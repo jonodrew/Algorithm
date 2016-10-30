@@ -125,7 +125,7 @@ def successCalc(df):
 for j in range(100):
     attempt_no = 0
     test1 = createData()
-    test1.to_csv('results/test_data_%d' % attempt_no)
+    test1.to_csv('results/test_data_%d.csv' % attempt_no)
     start_time = time.time()
     success = False
     while success == False:
