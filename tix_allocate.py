@@ -59,8 +59,6 @@ def swapFunc(df1, df2):
     df1 = df1.drop(rand1) #deletes that  row from df1 table
     df1 = df1.append(df2.ix[rand2]) #appends random row from df2 table
     df2 = df2.drop(rand2) #deletes that row from df2
-<<<<<<< Updated upstream
-=======
     return df1,df2,rand1,rand2
 def swapBack(df1,df2,int1,int2):
     """Does what it says on the tin"""
@@ -68,18 +66,18 @@ def swapBack(df1,df2,int1,int2):
     df1 = df1.drop(int2) #deletes that  row from df1 table
     df1 = df1.append(df2.ix[int1]) #appends random row from df2 table
     df2 = df2.drop(int1) #deletes that row from df2
->>>>>>> Stashed changes
     return df1,df2
 def dayCalc(df):
     """This calculates whether there are 250 attendees per day"""
     day1 = df['Day 1'].value_counts()
     day2 = df['Day 2'].value_counts()
-    if day1.ix[1] > 250 and day2.ix[1] > 250:
+    #print(day1.ix[1], day2.ix[1])
+    if day1.ix[1] >= 250 and day2.ix[1] >= 250:
         dayMetric = True
     else:
         dayMetric = False
+    #print (dayMetric)
     return dayMetric
-
 def regionCalc(df):
     """Calculates whether the regions are in the ratios below AND if the day metric
     is still correct"""
@@ -100,26 +98,14 @@ def regionCalc(df):
     else:
         regionMetric = False
     return regionMetric
-
 def streamCalc(df):
     streamDict = dict(Counter(" ".join(delegates['Stream'].values.tolist()).split(" ")).items())
     CSR_metric = False
     non_CSR_metric = False
     FT_metric = False
     for stream in streamDict:
-        streamDict[stream] = float(streamDict.get(stream))/len(df)
+        streamDict[stream] = int(streamDict.get(stream))
     #print(streamDict)
-<<<<<<< Updated upstream
-    if streamDict.get('CSR') >= 0.65 and streamDict.get('CSR') <= 0.72:
-        CSR_metric = True
-    if streamDict.get('non-CSR') >= 0.18 and streamDict.get('non-CSR') <= 0.29:
-        non_CSR_metric = True
-    if streamDict.get('FT') >= 0.03 and streamDict.get('FT') <= 0.12:
-        FT_metric = True
-    if CSR_metric == True and non_CSR_metric == True and FT_metric == True and (
-    streamDict.get('CSR') + streamDict.get('non-CSR') + streamDict.get('FT') ==
-    1.0):
-=======
     if streamDict.get('CSR') >= 340 and streamDict.get('CSR') <= 360:
         CSR_metric = True
     if streamDict.get('non-CSR') >= 90 and streamDict.get('non-CSR') <= 110:
@@ -127,66 +113,16 @@ def streamCalc(df):
     if streamDict.get('FT') >= 40 and streamDict.get('FT') <= 60:
         FT_metric = True
     if bool(CSR_metric * non_CSR_metric * FT_metric) == True:
->>>>>>> Stashed changes
         streamMetric = True
     else:
         streamMetric = False
+    #print(streamDict)
     return streamMetric
-
 def reindex(df):
     newIndex = range(0,len(df))
     df['Index'] = newIndex
     df = df.set_index('Index')
     return df
-<<<<<<< Updated upstream
-
-applicants = pd.read_csv('test.csv')
-
-rows = random.sample(applicants.index, 800)
-
-delegates = applicants.ix[rows]
-
-applicants = applicants.drop(rows)
-
-loop = 0
-dayMetric = False
-CSR_metric = False
-streamMetric = False
-while dayMetric == False:
-    dataframes = swapFunc(delegates,applicants)
-    delegates = dataframes[0]
-    applicants = dataframes[1]
-    print('This is a day loop')
-    loop +=1
-    print('This is iteration %d' % loop)
-    dayMetric = dayCalc(delegates)
-    if dayMetric == True:
-        print("Correct number of delegates per day")
-        regionMetric = regionCalc(delegates)
-        if regionMetric == False:
-            dataframes = swapFunc(delegates,applicants)
-            delegates = dataframes[0]
-            applicants = dataframes[1]
-            print('Swapping regional candidate')
-            regionMetric = regionCalc(delegates)
-            loop +=1
-            print('This is loop %d' % loop)
-        else:
-            print('Correct number of delegates per region')
-            streamMetric = streamCalc(delegates)
-            while streamMetric == False:
-                dataframes = swapFunc(delegates,applicants)
-                delegates = dataframes[0]
-                applicants = dataframes[1]
-                print('Swapping stream candidate')
-                streamMetric = streamCalc(delegates)
-                loop +=1
-                print('This is loop %d' % loop)
-                if streamMetric == True:
-                    print("Correct number of delegates per stream")
-                    print("Delegate list compiled")
-                    delegates.to_csv("delegate_test.csv")
-=======
 def successCalc(df):
     a = regionCalc(df)
     b = streamCalc(df)
@@ -196,7 +132,7 @@ def successCalc(df):
     successMetric = bool(a * b * c)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return successMetric,a,b,c
-for j in range(1000):
+for j in range(100):
     start_time = time.time()
     success = False
     iteration = 0
@@ -286,7 +222,7 @@ for j in range(1000):
             if row['Day 1'] == 1 and len(day_1.index) < 250:
                 day_1 = day_1.append(delegates.ix[index])
             elif row['Day 2'] == 1 and len(day_2.index) < 250:
-                day_2.append(delegates.ix[row])
+                day_2.append(delegates.ix[index])
             else:
                 reserves_df.append(delegates.ix[row])
         day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
@@ -303,4 +239,3 @@ for j in range(1000):
 print("Test complete")
 times = pd.DataFrame(times.items(),columns = ['Attempt','Time (m)'])
 times.to_csv('results/times.csv')
->>>>>>> Stashed changes
