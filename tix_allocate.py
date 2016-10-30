@@ -5,6 +5,17 @@ import random
 import time
 import sys
 
+times = {}
+metrics = {}
+success = False
+max_iterations = 1
+tickets_available = 500
+regions = ['OOL','London']
+streams = ['CSR','non-CSR','FT']
+cols = ['ID','Region','Stream','Day 1','Day 2']
+stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
+metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
+
 def createData():
     """this function creates 2000 rows of random data according to the constraints
     set out below. They can be editted for harder testing"""
@@ -59,13 +70,12 @@ def dayCalc(df):
     """This calculates whether there are 250 attendees per day"""
     day1 = df['Day 1'].value_counts()
     day2 = df['Day 2'].value_counts()
-    #print(day1.ix[1], day2.ix[1])
-    if day1.ix[1] >= 250 and day2.ix[1] >= 250:
+    if day1.ix[1] > 250 and day2.ix[1] > 250:
         dayMetric = True
     else:
         dayMetric = False
-    #print (dayMetric)
     return dayMetric
+
 def regionCalc(df):
     """Calculates whether the regions are in the ratios below AND if the day metric
     is still correct"""
@@ -86,13 +96,14 @@ def regionCalc(df):
     else:
         regionMetric = False
     return regionMetric
+
 def streamCalc(df):
     streamDict = dict(Counter(" ".join(delegates['Stream'].values.tolist()).split(" ")).items())
     CSR_metric = False
     non_CSR_metric = False
     FT_metric = False
     for stream in streamDict:
-        streamDict[stream] = int(streamDict.get(stream))
+        streamDict[stream] = float(streamDict.get(stream))/len(df)
     #print(streamDict)
     if streamDict.get('CSR') >= 340 and streamDict.get('CSR') <= 360:
         CSR_metric = True
@@ -104,8 +115,8 @@ def streamCalc(df):
         streamMetric = True
     else:
         streamMetric = False
-    #print(streamDict)
     return streamMetric
+
 def reindex(df):
     newIndex = range(0,len(df))
     df['Index'] = newIndex
@@ -121,33 +132,22 @@ def successCalc(df):
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return successMetric,a,b,c
 
-times = {}
-metrics = {}
-success = False
-max_iterations = 1500
-tickets_available = 500
-regions = ['OOL','London'] #need to add new regions
-streams = ['CSR','non-CSR','FT']
-cols = ['ID','Region','Stream','Day 1','Day 2']
-test1 = createData()
-stream_targets = {'CSR':350,'non-CSR':100,'FT':50}
-metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
-
-for j in range(100):
-    start_time = time.time() #for measuring how long it takes
-    success = False #to ensure we keep going until successful
-    iteration = 0 #to measure loops, making sure we stop
+for j in range(1000):
+    start_time = time.time()
+    success = False
+    iteration = 0
+    test1 = createData()
     while success == False:
         attempt = "%d.%d" % (j,iteration)
-        if iteration > 9: #prevents infinite loop
+        if iteration > 99:
             break
-        start_iteration_time = time.time() #for measuring loops
-        print("Attempt: %d.%d" % (j,iteration)) #outputs useful message
-        applicants = test1 #bucket of applicants
-        rows = random.sample(applicants.index, tickets_available) #randomly select as many applicants as there are tickets
-        delegates = applicants.ix[rows] #transfer them into the delegates bucket
-        applicants = applicants.drop(rows) #drop these rows. Prevents duplicates
-        success_outputs = successCalc(delegates) #calculate if already correct
+        start_iteration_time = time.time()
+        print("Attempt: %d.%d" % (j,iteration))
+        applicants = test1
+        rows = random.sample(applicants.index, tickets_available)
+        delegates = applicants.ix[rows]
+        applicants = applicants.drop(rows)
+        success_outputs = successCalc(delegates)
         success = success_outputs[0]
         regionMetric = False
         dayMetric = False
@@ -223,7 +223,7 @@ for j in range(100):
             if row['Day 1'] == 1 and len(day_1.index) < 250:
                 day_1 = day_1.append(delegates.ix[index])
             elif row['Day 2'] == 1 and len(day_2.index) < 250:
-                day_2.append(delegates.ix[index])
+                day_2.append(delegates.ix[row])
             else:
                 reserves_df.append(delegates.ix[row])
         day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
