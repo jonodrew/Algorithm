@@ -8,7 +8,7 @@ import sys
 times = {}
 metrics = {}
 success = False
-max_iterations = 99999
+max_iterations = 9999
 max_attempts = 99
 tickets_available = 500
 regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
@@ -213,14 +213,14 @@ for j in range(100):
                 else:
                     reserves_df.append(delegates.ix[index])
             #print(day_1)
-            day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
-            day_2.to_csv('results/day2_iteration%d.%d.csv' % (j,iteration))
-            reserves_df.to_csv('results/reserves_iteration%d.%d.csv' % (j,iteration))
+            day_1.to_csv('results/day1_test%s.csv' % attempt)
+            day_2.to_csv('results/day2_test%s.csv' % attempt)
+            reserves_df.to_csv('results/reserves_test%s.csv' % attempt)
         else:
             success = False
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
             attempt_no += 1
-            print("No solutions found in 100,000 iterations. Reshuffling data")
+            print("No solutions found in 10,000 iterations. Reshuffling data")
         end_time = (time.time()-start_time)/60
         times[j] = end_time
     if attempt_no > max_attempts:
