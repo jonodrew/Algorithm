@@ -20,10 +20,12 @@ cols = ['ID','Region','Stream','Day 1','Day 2']
 stream_target = {'CSR':350,'non-CSR':100,'FT':50}
 metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
 def createData():
-    """this function creates 2000 rows of random data according to the constraints
+    """this function creates rows of random data according to the constraints
     set out below. They can be editted for harder testing"""
     df = []
-    for i in range(2000):
+    this_test_numbers = []
+    applicants_number = random.randrange(8,25)*100
+    for i in range(applicants_number):
         r = [i]
         rand1 = random.random()
         rand2 = random.random()
@@ -51,8 +53,9 @@ def createData():
             r.append(1)
             r.append(1)
         df.append(r)
+    ncsr_bound = ncsr_bound - csr_bound
     df = pd.DataFrame(df,columns=cols)
-    return df
+    return df,applicants_number,London_bound,csr_bound,ncsr_bound
 def swapFunc(df1, df2):
     """This function swaps two random rows from the delegates dataframe to the
     applicants dataframe"""
@@ -122,9 +125,12 @@ def successCalc(df):
     c = streamCalc(df,stream_target,region_target)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return a,b,c
-for j in range(100):
+data = createData()
+test1 = data[0]
+for j in range(10000):
+    print(data[1],data[2],data[3],data[4])
+    status = []
     attempt_no = 0
-    test1 = createData()
     test1.to_csv('results/test_data_%d.csv' % attempt_no)
     start_time = time.time()
     success = False
@@ -199,9 +205,10 @@ for j in range(100):
             iteration += 1
         #success = streamMetric
         if streamMetric == True:
+            status = [attempt, 'Successful']
             success = True
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-            print("Success! Delegate list compiled")
+            #print("Success! Delegate list compiled")
             day_1 = pd.DataFrame(columns = delegates.columns)
             day_2 = day_1
             reserves_df = day_1
@@ -220,17 +227,23 @@ for j in range(100):
             success = False
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
             attempt_no += 1
-            print("No solutions found in 10,000 iterations. Reshuffling data")
-        end_time = (time.time()-start_time)/60
+            #print("No solutions found in 10,000 iterations. Reshuffling data")
+        end_time = (time.time()-start_time)
         times[j] = end_time
     if attempt_no > max_attempts:
-        end_time = (time.time()-start_time)/60
-        times[j] = end_time
+        status = [attempt,'Failed after 100 attempts']
         success = False
         metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-        print("No solutions found in 100 attempts. Testing new data")
-    test1 = createData()
-    print("New data")
+        #print("No solutions found in 100 attempts. Testing new data")
+    end_time = (time.time()-start_time)
+    times[j] = end_time
+    status.append(times[j])
+    #print("New data")
+    with open('results/status.txt', 'a') as f:
+        f.write('%s: %s. \nTime: %s\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
+        % (status[0],status[1],status[2],data[1],data[2],data[3],data[4]))
+    data = createData()
+    test1 = data[0]
 print("Test complete")
-times = pd.DataFrame(times.items(),columns = ['Attempt','Time (m)'])
+times = pd.DataFrame(times.items(),columns = ['Attempt','Time (s)'])
 times.to_csv('results/times.csv')
