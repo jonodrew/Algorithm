@@ -8,8 +8,8 @@ import sys
 times = {}
 metrics = {}
 success = False
-max_iterations = 9999
-max_attempts = 99
+max_iterations = 9
+max_attempts = 9
 tickets_available = 500
 regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
 region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
@@ -220,9 +220,9 @@ for j in range(10000):
                 else:
                     reserves_df.append(delegates.ix[index])
             #print(day_1)
-            day_1.to_csv('results/day1_test%s.csv' % attempt)
-            day_2.to_csv('results/day2_test%s.csv' % attempt)
-            reserves_df.to_csv('results/reserves_test%s.csv' % attempt)
+            day_1.to_csv('results/%s_d1_test.csv' % attempt)
+            day_2.to_csv('results/%s_d2_test.csv' % attempt)
+            reserves_df.to_csv('results/%s_reserves_test.csv' % attempt)
         else:
             success = False
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
