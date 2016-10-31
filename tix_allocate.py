@@ -9,7 +9,7 @@ times = {}
 metrics = {}
 success = False
 max_iterations = 9999
-max_attempts = 99
+max_attempts = 9
 tickets_available = 500
 regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
 region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
@@ -129,6 +129,7 @@ for i in range(20):
     data = createData(i)
     applicants_number = data[1]
     test1 = data[0]
+    i_time = time.time()
     for j in range(100):
         status = []
         attempt_no = 0
@@ -203,7 +204,9 @@ for i in range(20):
                 iteration += 1
             #success = streamMetric
             if streamMetric == True:
-                status = [attempt, 'Successful']
+                end_time = time.time() - start_time
+                times[j] = end_time
+                status = [attempt, 'Successful', end_time]
                 success = True
                 metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
                 print("Success! Delegate list compiled. Iterating data for current applicant count.")
@@ -222,29 +225,28 @@ for i in range(20):
                 day_2.to_csv('results/%s_d2_test.csv' % attempt)
                 reserves_df.to_csv('results/%s_reserves_test.csv' % attempt)
             else:
+                end_time = time.time() - start_time
+                times[j] = end_time
+                status = [attempt,'Failed after 100 attempts',end_time]
                 success = False
                 metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
                 attempt_no += 1
                 print("No solutions found in 10,000 iterations. Reshuffling data")
-            end_time = (time.time()-start_time)
-            times[j] = end_time
+            with open('results/status.txt', 'a') as f:
+                f.write('%s: %s. \nThis loop: %s\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
+                % (status[0],status[1],status[2],data[1],data[2],data[3],data[4]))
         attempt = "%d.%d.%d" % (i,j,attempt_no)
         if attempt_no > max_attempts:
-            status = [attempt,'Failed after 100 attempts']
+            fail_time = time.time() - start_time
+            status = [attempt,'Failed after 100 attempts',fail_time]
             success = False
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
             print("No solutions found in 100 attempts. Testing new data")
-        end_time = (time.time()-start_time)
-        times[j] = end_time
-        status.append(times[j])
         #print("New data")
-        test1.to_csv('results/test_data_%s.csv' % attempt)
-        with open('results/status.txt', 'a') as f:
-            f.write('%s: %s. \nTime: %s\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
-            % (status[0],status[1],status[2],data[1],data[2],data[3],data[4]))
+        test1.to_csv('results/%s_test_data.csv' % attempt)
         data = createData(i)
         test1 = data[0]
-    print("Test of %d applicants complete, moving to %d" % applicants_number, (applicants_number + 100))
+    print("Test of %d applicants complete, moving to %d" % (applicants_number, (applicants_number + 100)))
     times = pd.DataFrame(times.items(),columns = ['Attempt','Time (s)'])
     times.to_csv('results/times.csv')
 print("All tests complete")
