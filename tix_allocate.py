@@ -130,7 +130,7 @@ for i in range(20):
     applicants_number = data[1]
     test1 = data[0]
     i_time = time.time()
-    for j in range(100):
+    for j in range(10):
         status = []
         attempt_no = 0
         start_time = time.time()
@@ -227,7 +227,7 @@ for i in range(20):
             else:
                 end_time = time.time() - start_time
                 times[j] = end_time
-                status = [attempt,'Failed after 100 attempts',end_time]
+                status = [attempt,'Failed after 10,000 attempts',end_time]
                 success = False
                 metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
                 attempt_no += 1
