@@ -8,8 +8,8 @@ import sys
 times = {}
 metrics = {}
 success = False
-max_iterations = 99999
-max_attempts = 99
+max_iterations = 9999
+max_attempts = 9
 tickets_available = 500
 regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
 region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
@@ -19,15 +19,17 @@ streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
 stream_target = {'CSR':350,'non-CSR':100,'FT':50}
 metrics = pd.DataFrame(columns = ['Attempt','Day','Region','Stream'])
-def createData():
-    """this function creates 2000 rows of random data according to the constraints
+def createData(j):
+    """this function creates rows of random data according to the constraints
     set out below. They can be editted for harder testing"""
     df = []
-    for i in range(2000):
+    this_test_numbers = []
+    applicants_number = 600 + (j*100)
+    for i in range(applicants_number):
         r = [i]
         rand1 = random.random()
         rand2 = random.random()
-        rand3 = random.randrange(1,3)
+        rand3 = random.randrange(1,4)
         London_bound = random.uniform(0.65,0.85)
         csr_bound = random.uniform(0.6,0.8)
         ncsr_bound = random.uniform(0.8,0.9)
@@ -51,8 +53,9 @@ def createData():
             r.append(1)
             r.append(1)
         df.append(r)
+    ncsr_bound = ncsr_bound - csr_bound
     df = pd.DataFrame(df,columns=cols)
-    return df
+    return df,applicants_number,London_bound,csr_bound,ncsr_bound
 def swapFunc(df1, df2):
     """This function swaps two random rows from the delegates dataframe to the
     applicants dataframe"""
@@ -122,115 +125,128 @@ def successCalc(df):
     c = streamCalc(df,stream_target,region_target)
     #print("Day correct: %s \nRegion correct: %s \nStream correct: %s \n" % (c,a,b))
     return a,b,c
-for j in range(100):
-    attempt_no = 0
-    test1 = createData()
-    test1.to_csv('results/test_data_%d.csv' % attempt_no)
-    start_time = time.time()
-    success = False
-    while success == False:
-        if attempt_no > max_attempts:
-            break
-        iteration = 0
-        attempt = "%d.%d" % (j,attempt_no)
-        print("Attempt no: %s" % attempt)
-        #print(iteration)
-        start_iteration_time = time.time()
-        applicants = test1
-        rows = random.sample(applicants.index, tickets_available)
-        delegates = applicants.ix[rows]
-        applicants = applicants.drop(rows)
-        success_outputs = successCalc(delegates)
-        success = success_outputs[2]
-        if success == True:
-            break
-        regionMetric = False
-        dayMetric = False
-        streamMetric = False
-        while streamMetric == False:
-            if iteration > max_iterations:
+for i in range(20):
+    data = createData(i)
+    applicants_number = data[1]
+    test1 = data[0]
+    i_time = time.time()
+    for j in range(10):
+        status = []
+        attempt_no = 0
+        start_time = time.time()
+        success = False
+        while success == False:
+            attempt = "%d.%d.%d" % (i,j,attempt_no)
+            if attempt_no > max_attempts:
                 break
-            #print("Starting stream loop %d" % stream_loop)
-            while regionMetric == False:
+            iteration = 0
+            print("Attempt no: %s\nApplicants: %d" % (attempt, applicants_number))
+            #print(iteration)
+            start_iteration_time = time.time()
+            applicants = test1
+            rows = random.sample(applicants.index, tickets_available)
+            delegates = applicants.ix[rows]
+            applicants = applicants.drop(rows)
+            success_outputs = successCalc(delegates)
+            success = success_outputs[2]
+            regionMetric = False
+            dayMetric = False
+            streamMetric = False
+            while streamMetric == False:
                 if iteration > max_iterations:
                     break
-                #print("Starting region loop %d" % region_loop)
-                while dayMetric == False:
-                    #print("Starting day loop %d" % day_loop)
-                    success_outputs = successCalc(delegates)
-                    dayMetric = success_outputs[0]
-                    regionMetric = success_outputs[1]
-                    streamMetric = success_outputs[2]
-                    success = streamMetric
-                    if dayMetric == True:
+                #print("Starting stream loop %d" % stream_loop)
+                while regionMetric == False:
+                    if iteration > max_iterations:
                         break
-                    pre_day1 = delegates['Day 1'].value_counts().ix[1]
+                    #print("Starting region loop %d" % region_loop)
+                    while dayMetric == False:
+                        #print("Starting day loop %d" % day_loop)
+                        success_outputs = successCalc(delegates)
+                        dayMetric = success_outputs[0]
+                        regionMetric = success_outputs[1]
+                        streamMetric = success_outputs[2]
+                        success = streamMetric
+                        if dayMetric == True:
+                            break
+                        pre_day1 = delegates['Day 1'].value_counts().ix[1]
+                        dataframes = swapFunc(delegates,applicants)
+                        delegates = dataframes[0]
+                        applicants = dataframes[1]
+                        post_day1 = delegates['Day 1'].value_counts().ix[1]
+                        if abs(250 - post_day1) > abs(250 - pre_day1):
+                            dataframes = swapBack(delegates,applicants,dataframes[2],dataframes[3])
+                            delegates = dataframes[0]
+                            applicants = dataframes[1]
+                        iteration += 1
+                    regionMetric = regionCalc(delegates,region_target)
+                    if regionMetric == True:
+                        break
                     dataframes = swapFunc(delegates,applicants)
                     delegates = dataframes[0]
                     applicants = dataframes[1]
-                    post_day1 = delegates['Day 1'].value_counts().ix[1]
-                    if abs(250 - post_day1) > abs(250 - pre_day1):
-                        dataframes = swapBack(delegates,applicants,dataframes[2],dataframes[3])
-                        delegates = dataframes[0]
-                        applicants = dataframes[1]
+                    success_outputs = successCalc(delegates)
+                    success_outputs = successCalc(delegates)
+                    success = success_outputs[2]
+                    regionMetric = success_outputs[1]
                     iteration += 1
-                regionMetric = regionCalc(delegates,region_target)
-                if regionMetric == True:
+                streamMetric = success_outputs[2]
+                #print(streamMetric)
+                if streamMetric == True:
                     break
+                #print(streamMetric)
                 dataframes = swapFunc(delegates,applicants)
                 delegates = dataframes[0]
                 applicants = dataframes[1]
                 success_outputs = successCalc(delegates)
-                success_outputs = successCalc(delegates)
                 success = success_outputs[2]
-                regionMetric = success_outputs[1]
+                streamMetric = success
                 iteration += 1
-            streamMetric = success_outputs[2]
-            #print(streamMetric)
+            #success = streamMetric
             if streamMetric == True:
-                break
-            #print(streamMetric)
-            dataframes = swapFunc(delegates,applicants)
-            delegates = dataframes[0]
-            applicants = dataframes[1]
-            success_outputs = successCalc(delegates)
-            success = success_outputs[2]
-            streamMetric = success
-            iteration += 1
-        #success = streamMetric
-        if streamMetric == True:
-            success = True
-            metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-            print("Success! Delegate list compiled")
-            day_1 = pd.DataFrame(columns = delegates.columns)
-            day_2 = day_1
-            reserves_df = day_1
-            for index,row in delegates.iterrows():
-                if row['Day 1'] == 1 and len(day_1.index) < 250:
-                    day_1 = day_1.append(delegates.ix[index])
-                elif row['Day 2'] == 1 and len(day_2.index) < 250:
-                    day_2.append(delegates.ix[index])
-                else:
-                    reserves_df.append(delegates.ix[index])
-            #print(day_1)
-            day_1.to_csv('results/day1_iteration%d.%d.csv' % (j,iteration))
-            day_2.to_csv('results/day2_iteration%d.%d.csv' % (j,iteration))
-            reserves_df.to_csv('results/reserves_iteration%d.%d.csv' % (j,iteration))
-        else:
+                end_time = time.time() - start_time
+                times[j] = end_time
+                status = [attempt, 'Successful', end_time]
+                success = True
+                metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
+                print("Success! Delegate list compiled. Iterating data for current applicant count.")
+                day_1 = pd.DataFrame(columns = delegates.columns)
+                day_2 = day_1
+                reserves_df = day_1
+                for index,row in delegates.iterrows():
+                    if row['Day 1'] == 1 and len(day_1.index) < 250:
+                        day_1 = day_1.append(delegates.ix[index])
+                    elif row['Day 2'] == 1 and len(day_2.index) < 250:
+                        day_2.append(delegates.ix[index])
+                    else:
+                        reserves_df.append(delegates.ix[index])
+                #print(day_1)
+                day_1.to_csv('results/%s_d1_test.csv' % attempt)
+                day_2.to_csv('results/%s_d2_test.csv' % attempt)
+                reserves_df.to_csv('results/%s_reserves_test.csv' % attempt)
+            else:
+                end_time = time.time() - start_time
+                times[j] = end_time
+                status = [attempt,'Failed after 10,000 attempts',end_time]
+                success = False
+                metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
+                attempt_no += 1
+                print("No solutions found in 10,000 iterations. Reshuffling data")
+            with open('results/status.txt', 'a') as f:
+                f.write('%s: %s. \nThis loop: %s\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
+                % (status[0],status[1],status[2],data[1],data[2],data[3],data[4]))
+        attempt = "%d.%d.%d" % (i,j,attempt_no)
+        if attempt_no > max_attempts:
+            fail_time = time.time() - start_time
+            status = [attempt,'Failed after 100 attempts',fail_time]
             success = False
             metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-            attempt_no += 1
-            print("No solutions found in 100,000 iterations. Reshuffling data")
-        end_time = (time.time()-start_time)/60
-        times[j] = end_time
-    if attempt_no > max_attempts:
-        end_time = (time.time()-start_time)/60
-        times[j] = end_time
-        success = False
-        metrics.loc[attempt] = [attempt,dayMetric,regionMetric,streamMetric]
-        print("No solutions found in 100 attempts. Testing new data")
-    test1 = createData()
-    print("New data")
-print("Test complete")
-times = pd.DataFrame(times.items(),columns = ['Attempt','Time (m)'])
-times.to_csv('results/times.csv')
+            print("No solutions found in 100 attempts. Testing new data")
+        #print("New data")
+        test1.to_csv('results/%s_test_data.csv' % attempt)
+        data = createData(i)
+        test1 = data[0]
+    print("Test of %d applicants complete, moving to %d" % (applicants_number, (applicants_number + 100)))
+    times = pd.DataFrame(times.items(),columns = ['Attempt','Time (s)'])
+    times.to_csv('results/times.csv')
+print("All tests complete")
