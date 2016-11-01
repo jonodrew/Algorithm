@@ -24,10 +24,11 @@ def createData(j):
     set out below. They can be editted for harder testing"""
     df = []
     this_test_numbers = []
-    applicants_number = 1200 + (j*100)
+    applicants_number = 600 + (j*100)
     London_bound = random.uniform(0.65,0.85)
     csr_bound = random.uniform(0.6,0.8)
-    ncsr_bound = random.uniform(0.8,0.9)
+    ncsr_bound = random.uniform(0.1,0.3)
+    FT_ratio = 1.0 - csr_bound - ncsr_bound
     for i in range(applicants_number):
         r = [i]
         rand1 = random.random()
@@ -39,7 +40,7 @@ def createData(j):
             r.append(random.choice(regions))
         if rand2 < csr_bound:
             r.append(streams[0])
-        elif rand2 < ncsr_bound:
+        elif rand2 < (csr_bound + ncsr_bound):
             r.append(streams[1])
         else:
             r.append(streams[2])
@@ -53,9 +54,9 @@ def createData(j):
             r.append(1)
             r.append(1)
         df.append(r)
-    ncsr_bound = ncsr_bound - csr_bound
     df = pd.DataFrame(df,columns=cols)
-    print(London_bound,csr_bound,ncsr_bound)
+    print("London ratio: %f\nCSR ratio: %f\nnCSr ratio: %f\nFT ratio: %f" %
+    (London_bound,csr_bound,ncsr_bound,FT_ratio))
     return df,applicants_number,London_bound,csr_bound,ncsr_bound
 def swapFunc(df1, df2):
     """This function swaps two random rows from the delegates dataframe to the
@@ -130,7 +131,6 @@ for i in range(20):
     data = createData(i)
     applicants_number = data[1]
     test1 = data[0]
-    print(test1)
     i_time = time.time()
     for j in range(10):
         status = []
@@ -157,13 +157,13 @@ for i in range(20):
             while streamMetric == False:
                 if iteration > max_iterations:
                     break
-                print("Starting stream loop")
+                #print("Starting stream loop")
                 while regionMetric == False:
                     if iteration > max_iterations:
                         break
-                    print("Starting region loop %d" )
+                    #print("Starting region loop )
                     while dayMetric == False:
-                        print("Starting day loop %d" )
+                        #print("Starting day loop )
                         success_outputs = successCalc(delegates)
                         dayMetric = success_outputs[0]
                         regionMetric = success_outputs[1]
