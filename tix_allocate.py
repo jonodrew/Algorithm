@@ -27,8 +27,8 @@ def createData(j):
     applicants_number = 600 + (j*100)
     London_bound = random.uniform(0.65,0.85)
     csr_bound = random.uniform(0.6,0.8)
-    ncsr_bound = random.uniform(0.1,0.3)
-    FT_ratio = 1.0 - csr_bound - ncsr_bound
+    ncsr_bound = random.uniform(0.1,0.2)
+    FT_ratio = 1.0 - (csr_bound + ncsr_bound)
     for i in range(applicants_number):
         r = [i]
         rand1 = random.random()
@@ -163,6 +163,8 @@ for i in range(20):
                         break
                     #print("Starting region loop )
                     while dayMetric == False:
+                        if iteration > max_iterations:
+                            break
                         #print("Starting day loop )
                         success_outputs = successCalc(delegates)
                         dayMetric = success_outputs[0]
@@ -171,15 +173,15 @@ for i in range(20):
                         success = streamMetric
                         if dayMetric == True:
                             break
-                        pre_day1 = delegates['Day 1'].value_counts().ix[1]
+                        #pre_day1 = delegates['Day 1'].value_counts().ix[1]
                         dataframes = swapFunc(delegates,applicants)
                         delegates = dataframes[0]
                         applicants = dataframes[1]
-                        post_day1 = delegates['Day 1'].value_counts().ix[1]
-                        if abs(250 - post_day1) > abs(250 - pre_day1):
-                            dataframes = swapBack(delegates,applicants,dataframes[2],dataframes[3])
-                            delegates = dataframes[0]
-                            applicants = dataframes[1]
+                        # post_day1 = delegates['Day 1'].value_counts().ix[1]
+                        # if abs(250 - post_day1) > abs(250 - pre_day1):
+                        #     dataframes = swapBack(delegates,applicants,dataframes[2],dataframes[3])
+                        #     delegates = dataframes[0]
+                        #     applicants = dataframes[1]
                         iteration += 1
                         print(iteration)
                     regionMetric = regionCalc(delegates,region_target)
@@ -252,10 +254,3 @@ for i in range(20):
         test1 = data[0]
     print("Test of %d applicants complete, moving to %d" % (applicants_number, (applicants_number + 100)))
 print("All tests complete")
-
-"""
-search for under-represented groups and swap with over-represented groups?
-If closer to ideal, check metrcs.
-If fail, redo
-If worse
-"""
