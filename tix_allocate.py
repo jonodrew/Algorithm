@@ -226,7 +226,7 @@ def __main__():
                     f.write('%s: %s. \nTime (s): %s\nIterations required: %d\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
                     % (status[0],status[1],status[2],status[3],data[1],data[2],data[3],data[4]))
                     start_time = time.time()
-            attempt = "%d.%d.%d" % (i,j,attempt_no)
+            #attempt = "%d.%d.%d" % (i,j,attempt_no)
             if attempt_no > max_attempts:
                 fail_time = time.time() - start_time
                 status = [attempt,'Failed after 10 attempts',fail_time]
