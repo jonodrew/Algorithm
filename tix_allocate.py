@@ -119,32 +119,31 @@ def reindex(df):
 def __main__():
     for i in range(20):
         success = False
-        data = createData(0)
+        data = createData(i)
         applicants = data[0]
         applicants_number = data[1]
-        rows = random.sample(applicants.index, tickets_available)
-        delegates = applicants.ix[rows]
-        applicants = applicants.drop(rows)
-        outputs = loopFunction(delegates,applicants,0)
-        iteration = 0
-        i_time = time.time()
         for j in range(10):
             status = []
             attempt_no = 0
             start_time = time.time()
-            regionMetric = False
-            dayMetric = False
-            streamMetric = False
+            i_time = time.time()
+            success = False
             while success == False:
-                attempt = "%d.%d.%d" % (i,j,attempt_no)
+                applicants = data[0]
                 if attempt_no > max_attempts:
                     break
+                iteration = 0
+                attempt = "%d.%d.%d" % (i,j,attempt_no)
                 iteration = 0
                 print("Attempt no: %s\nApplicants: %d" % (attempt, applicants_number))
                 #print(iteration)
                 start_iteration_time = time.time()
-                if iteration > max_iterations:
-                    break
+                rows = random.sample(applicants.index, tickets_available)
+                delegates = applicants.ix[rows]
+                applicants = applicants.drop(rows)
+                regionMetric = False
+                dayMetric = False
+                streamMetric = False
                 success_outcomes = []
                 while streamMetric == False:
                     if iteration > max_iterations:
@@ -234,7 +233,7 @@ def __main__():
                 print("No solutions found in 100 attempts. Testing new data")
             #print("New data")
             data = createData(i)
-            test1 = data[0]
+            applicants = data[0]
         print("Test of %d applicants complete, moving to %d" % (applicants_number, (applicants_number + 100)))
     print("All tests complete")
 
