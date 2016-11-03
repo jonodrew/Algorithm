@@ -128,16 +128,16 @@ def __main__():
     for i in range(10):
         success = False
         for j in range(50):
+            i_time = time.time()
             status = []
             successful_ratio = []
             attempt_no = 0
             start_time = time.time()
-            i_time = time.time()
             success = False
             data = createData(i)
             applicants = data[0]
             applicants_number = data[1]
-            variance = 0.00
+            variance = 0.50
             while success == False:
                 applicants = data[0]
                 iteration = 0
@@ -207,7 +207,7 @@ def __main__():
                         #print("End stream loop")
                 if success == True:
                     print("Success!")
-                    end_time = time.time() - start_time
+                    end_time = time.time() - i_time
                     times[j] = end_time
                     status = [attempt, 'Successful', end_time,iteration]
                     success = True
@@ -219,7 +219,7 @@ def __main__():
                     streamDict = calcFunction('Stream',delegates,stream_target,regionMetric,variance)[1]
                     success_ratios = regionDict.copy()
                     success_ratios.update(streamDict)
-                    temp = [len(delegates.index),variance,end_time]
+                    temp = [applicants_number,variance,end_time]
                     for key, value in success_ratios.iteritems():
                         temp.append(value*len(delegates))
                     for index,row in delegates.iterrows():
@@ -229,27 +229,28 @@ def __main__():
                             day_2 = day_2.append(delegates.ix[index])
                         else:
                             reserves_df = reserves_df.append(delegates.ix[index])
-                        reserves_df = reindex(reserves_df)
+                    reserves_df = reindex(reserves_df)
                     for index, row in reserves_df.iterrows():
                         if len(day_1.index) < 250:
                             day_1 = day_1.append(reserves_df.ix[index])
+                            reserves_df = reserves_df.drop(index)
                         elif len(day_2.index) < 250:
                             day_2 = day_2.append(reserves_df.ix[index])
-                        reserves_df = reserves_df.drop(index)
+                            reserves_df = reserves_df.drop(index)
                     successful_ratio.append(temp)
                     day_1 = reindex(day_1)
                     day_2 = reindex(day_2)
                     day_1.to_csv(filepath + '/%s_d1_test.csv' % attempt)
                     day_2.to_csv(filepath + '/%s_d2_test.csv' % attempt)
+                    reserves_df = reserves_df.append(applicants)
                     reserves_df.to_csv(filepath + '/%s_reserves_test.csv' % attempt)
                 else:
                     print("Fail!")
-                    end_time = time.time() - start_time
+                    end_time = time.time() - i_time
                     times[j] = end_time
                     status = [attempt,'Failed after %d operations' % (iteration),end_time,iteration]
                     success = False
                     print("No solutions found afer %d operations. Reshuffling data and increasing variance to %f" % (iteration,variance+0.01))
-                    print(dayMetric,regionMetric,streamMetric)
                     variance += 0.01
                     attempt_no += 1
                     if attempt_no > max_attempts:
