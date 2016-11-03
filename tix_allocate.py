@@ -127,7 +127,7 @@ def __main__():
         wr.writerow(headers)
     for i in range(10):
         success = False
-        for j in range(50):
+        for j in range(20):
             i_time = time.time()
             status = []
             successful_ratio = []
