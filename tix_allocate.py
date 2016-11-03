@@ -137,7 +137,7 @@ def __main__():
             data = createData(i)
             applicants = data[0]
             applicants_number = data[1]
-            variance = 0.50
+            variance = 0.00
             while success == False:
                 applicants = data[0]
                 iteration = 0
