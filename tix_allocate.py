@@ -4,6 +4,7 @@ from collections import Counter
 import random
 import time
 import sys
+import csv
 
 
 regions = ['SE','SW','NW','NE','Scotland','Anglia','Wales','Yorkshire','Midlands']
@@ -13,12 +14,13 @@ region_target = {'London':.751,"SE":0.037,'SW':0.026,'Wales':0.039,
 stream_target = {'CSR':0.7,'non-CSR':0.2,'FT':0.1}
 streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
-variance = 0.05 #this means a variance of 5%
 measures = ['Region','Stream','Day']
 times = {}
-max_iterations = 9999
+max_iterations = 999
 max_attempts = 9
 tickets_available = 500
+headers = ['Applicants','Variance','Time','Anglia','FT','SW','Scotland','NE','Yorkshire','Non-CSR','London','Midlands','Wales','CSR','SE','NW']
+filepath = "/Users/jonathankerr/Google Drive/Fast Stream Conference 2k17/Logistics/Ticketing/test_results"
 def dayCalc(df):
     """This calculates whether there are 250 attendees per day"""
     day1 = df['Day 1'].value_counts()
@@ -67,7 +69,7 @@ def createData(j):
     df = pd.DataFrame(df,columns=cols)
     print("London ratio: %f\nCSR ratio: %f\nnCSr ratio: %f\nFT ratio: %f" %
     (London_bound,csr_bound,ncsr_bound,FT_ratio))
-    return df,applicants_number,London_bound,csr_bound,ncsr_bound
+    return df,applicants_number,London_bound,csr_bound,ncsr_bound,FT_ratio
 def calcFunction(label,df,dict1,a,v):
     """Calculates whether selected metric is okay"""
     metric = 0
@@ -75,9 +77,12 @@ def calcFunction(label,df,dict1,a,v):
     validity = 0
     for key in calc_dict:
         calc_dict[key] = float(calc_dict.get(key))/len(df)
-    for key in dict1:
-        if (calc_dict[key] > (dict1[key] - v) and calc_dict[key] < (dict1[key] + v)):
-            validity += 1
+    try:
+        for key in dict1:
+            if (calc_dict[key] > (dict1[key] - v) and calc_dict[key] < (dict1[key] + v)):
+                validity += 1
+    except KeyError as e:
+        print(calc_dict)
     #print("%d/%d" % (validity,len(dict1)))
     if validity == len(dict1):
         metric = True
@@ -85,13 +90,13 @@ def calcFunction(label,df,dict1,a,v):
         metric = True
     else:
         metric = False
-    return metric
-def successCalc(df):
+    return metric,calc_dict
+def successCalc(df,v):
     #print(dayMetric)
     #global dayMetric
     dayMetric = dayCalc(df)
-    regionMetric = calcFunction('Region',df,region_target,dayMetric,variance)
-    streamMetric = calcFunction('Stream',df,stream_target,regionMetric,variance)
+    regionMetric = calcFunction('Region',df,region_target,dayMetric,v)[0]
+    streamMetric = calcFunction('Stream',df,stream_target,regionMetric,v)[0]
     return dayMetric,regionMetric,streamMetric
 def loopFunction(df1,df2,iteration):
     dataframes = swapFunc(df1,df2)
@@ -117,21 +122,24 @@ def reindex(df):
     df = df.set_index('Index')
     return df
 def __main__():
-    for i in range(20):
+    with open(filepath + '/successful_ratios.csv', 'w') as f:
+        wr = csv.writer(f, dialect='excel')
+        wr.writerow(headers)
+    for i in range(10):
         success = False
-        data = createData(i)
-        applicants = data[0]
-        applicants_number = data[1]
-        for j in range(10):
+        for j in range(50):
             status = []
+            successful_ratio = []
             attempt_no = 0
             start_time = time.time()
             i_time = time.time()
             success = False
+            data = createData(i)
+            applicants = data[0]
+            applicants_number = data[1]
+            variance = 0.00
             while success == False:
                 applicants = data[0]
-                if attempt_no > max_attempts:
-                    break
                 iteration = 0
                 attempt = "%d.%d.%d" % (i,j,attempt_no)
                 iteration = 0
@@ -154,7 +162,7 @@ def __main__():
                         while dayMetric == False:
                             if iteration > max_iterations:
                                 break
-                            success_outcomes = successCalc(delegates)
+                            success_outcomes = successCalc(delegates,variance)
                             dayMetric = success_outcomes[0]
                             regionMetric = success_outcomes[1]
                             streamMetric = success_outcomes[2]
@@ -166,7 +174,7 @@ def __main__():
                                 delegates = day_output[0]
                                 applicants = day_output[1]
                                 iteration = day_output[2]
-                                success_outcomes = successCalc(delegates)
+                                success_outcomes = successCalc(delegates,variance)
                                 dayMetric = success_outcomes[0]
                                 regionMetric = success_outcomes[1]
                                 streamMetric = success_outcomes[2]
@@ -178,7 +186,7 @@ def __main__():
                             delegates = region_output[0]
                             applicants = region_output[1]
                             iteration = region_output[2]
-                            success_outcomes = successCalc(delegates)
+                            success_outcomes = successCalc(delegates,variance)
                             dayMetric = success_outcomes[0]
                             regionMetric = success_outcomes[1]
                             streamMetric = success_outcomes[2]
@@ -191,10 +199,11 @@ def __main__():
                         delegates = stream_output[0]
                         applicants = stream_output[1]
                         iteration = stream_output[2]
-                        success_outcomes = successCalc(delegates)
+                        success_outcomes = successCalc(delegates,variance)
                         dayMetric = success_outcomes[0]
                         regionMetric = success_outcomes[1]
                         streamMetric = success_outcomes[2]
+                        success = streamMetric
                         #print("End stream loop")
                 if success == True:
                     print("Success!")
@@ -204,36 +213,61 @@ def __main__():
                     success = True
                     print("Success! Delegate list compiled. Iterating data for current applicant count.")
                     day_1 = pd.DataFrame(columns = delegates.columns)
-                    day_2 = day_1
-                    reserves_df = day_1
+                    day_2 = pd.DataFrame(columns = delegates.columns)
+                    reserves_df = pd.DataFrame(columns = delegates.columns)
+                    regionDict = calcFunction('Region',delegates,region_target,dayMetric,variance)[1]
+                    streamDict = calcFunction('Stream',delegates,stream_target,regionMetric,variance)[1]
+                    success_ratios = regionDict.copy()
+                    success_ratios.update(streamDict)
+                    temp = [len(delegates.index),variance,end_time]
+                    for key, value in success_ratios.iteritems():
+                        temp.append(value*len(delegates))
                     for index,row in delegates.iterrows():
-                        if row['Day 1'] == 1 and len(day_1.index) < 250:
+                        if (row['Day 1'] == 1 and row['Day 2'] == 0 and len(day_1.index) < 250):
                             day_1 = day_1.append(delegates.ix[index])
-                        elif row['Day 2'] == 1 and len(day_2.index) < 250:
-                            day_2.append(delegates.ix[index])
+                        elif (row['Day 2'] == 1 and row['Day 1'] == 0 and len(day_2.index) < 250):
+                            day_2 = day_2.append(delegates.ix[index])
                         else:
-                            reserves_df.append(delegates.ix[index])
+                            reserves_df = reserves_df.append(delegates.ix[index])
+                        reserves_df = reindex(reserves_df)
+                    for index, row in reserves_df.iterrows():
+                        if len(day_1.index) < 250:
+                            day_1 = day_1.append(reserves_df.ix[index])
+                        elif len(day_2.index) < 250:
+                            day_2 = day_2.append(reserves_df.ix[index])
+                        reserves_df = reserves_df.drop(index)
+                    successful_ratio.append(temp)
+                    day_1 = reindex(day_1)
+                    day_2 = reindex(day_2)
+                    day_1.to_csv(filepath + '/%s_d1_test.csv' % attempt)
+                    day_2.to_csv(filepath + '/%s_d2_test.csv' % attempt)
+                    reserves_df.to_csv(filepath + '/%s_reserves_test.csv' % attempt)
                 else:
                     print("Fail!")
                     end_time = time.time() - start_time
                     times[j] = end_time
-                    status = [attempt,'Failed after 10,000 operations',end_time,iteration]
+                    status = [attempt,'Failed after %d operations' % (iteration),end_time,iteration]
                     success = False
+                    print("No solutions found afer %d operations. Reshuffling data and increasing variance to %f" % (iteration,variance+0.01))
+                    print(dayMetric,regionMetric,streamMetric)
+                    variance += 0.01
                     attempt_no += 1
-                    print("No solutions found in 10,000 iterations. Reshuffling data")
-                with open('results/status.txt', 'a') as f:
-                    f.write('%s: %s. \nTime (s): %s\nIterations required: %d\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\n\n'
-                    % (status[0],status[1],status[2],status[3],data[1],data[2],data[3],data[4]))
+                    if attempt_no > max_attempts:
+                        break
+                with open(filepath + '/status.txt', 'a') as f:
+                    f.write('%s: %s. \nVariance: %f\nTime (s): %s\nIterations required: %d\nApplicants: %s\nLondon ratio: %s\nCSR ratio: %s\nNon-CSR: %s\nFT ratio: %s\n\n'
+                    % (status[0],status[1],variance,status[2],status[3],data[1],data[2],data[3],data[4],data[5]))
                     start_time = time.time()
+                with open(filepath + '/successful_ratios.csv', 'a') as f:
+                    writer = csv.writer(f)
+                    writer.writerows(successful_ratio)
             #attempt = "%d.%d.%d" % (i,j,attempt_no)
             if attempt_no > max_attempts:
                 fail_time = time.time() - start_time
-                status = [attempt,'Failed after 10 attempts',fail_time]
+                status = [attempt,'Failed after %d attempts' % (max_attempts) ,fail_time]
                 success = False
-                print("No solutions found in 100 attempts. Testing new data")
+                print("No solutions found in %d attempts. Testing new data" % (max_attempts))
             #print("New data")
-            data = createData(i)
-            applicants = data[0]
         print("Test of %d applicants complete, moving to %d" % (applicants_number, (applicants_number + 100)))
     print("All tests complete")
 
