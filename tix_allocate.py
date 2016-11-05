@@ -16,7 +16,7 @@ streams = ['CSR','non-CSR','FT']
 cols = ['ID','Region','Stream','Day 1','Day 2']
 measures = ['Region','Stream','Day']
 times = {}
-max_iterations = 999
+max_iterations = 14999
 max_attempts = 9
 tickets_available = 500
 headers = ['Applicants','Variance','Time','Anglia','FT','SW','Scotland','NE','Yorkshire','Non-CSR','London','Midlands','Wales','CSR','SE','NW']
@@ -82,6 +82,7 @@ def calcFunction(label,df,dict1,a,v):
             if (calc_dict[key] > (dict1[key] - v) and calc_dict[key] < (dict1[key] + v)):
                 validity += 1
     except KeyError as e:
+        print(e)
         print(calc_dict)
     #print("%d/%d" % (validity,len(dict1)))
     if validity == len(dict1):
@@ -246,7 +247,7 @@ def __main__():
                     reserves_df.to_csv(filepath + '/%s_reserves_test.csv' % attempt)
                 else:
                     print("Fail!")
-                    end_time = time.time() - i_time
+                    end_time = time.time() - start_iteration_time
                     times[j] = end_time
                     status = [attempt,'Failed after %d operations' % (iteration),end_time,iteration]
                     success = False
